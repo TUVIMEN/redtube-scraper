@@ -18,19 +18,19 @@ get_page() {
     local -r name="$(sha256sum <<< "$1"  | cut -d' ' -f1)"
     [ -e "$name" ] && return
     local -r t="$(ucurl "$1" | tr -d '\n\r\t')"
-    local -r jn="$(hgrep 'script +type="application/ld+json" @p"%i\n"' <<< "$t")"
+    local -r jn="$(hgrep 'script +type="application/ld+json" | "%i\n"' <<< "$t")"
     {
     echo "$1" #link
-    echo "$(hgrep 'h1 .video_page_title @p"%i\n"' <<< "$t" | sed 's/^ *//;s/ *$//')" #title
-    echo "$(hgrep 'div +class="video-infobox-uploader-info"; a @p"%i\n"' <<< "$t")" #channel
+    echo "$(hgrep 'h1 .video_page_title | "%i\n"' <<< "$t" | sed 's/^ *//;s/ *$//')" #title
+    echo "$(hgrep 'div +class="video-infobox-uploader-info"; a | "%i\n"' <<< "$t")" #channel
     echo "$(jq -r .uploadDate <<< "$jn")" #date
     echo "$(jq -r .duration <<< "$jn")" #duration
     echo "$(jq -r .thumbnailUrl <<< "$jn")" #thumbnail
-    echo "$(hgrep 'span +class="video_view_count" @p"%i\n"' <<< "$t" | sed 's/ .*//')" #views
-    echo "$(hgrep 'div +class="rating_percent js_rating_percent" +data-percent @p"%(data-percent)a\n"' <<< "$t")" #rating
-    echo "$(hgrep 'a +class="item video_carousel_item .*" @p"%i\n"' <<< "$t" | sed ':x; $!{N;s/\n/,/;bx}; s/,,*/,/g; s/   *//g')" #tags
+    echo "$(hgrep 'span +class="video_view_count" | "%i\n"' <<< "$t" | sed 's/ .*//')" #views
+    echo "$(hgrep 'div +class="rating_percent js_rating_percent" +data-percent | "%(data-percent)a\n"' <<< "$t")" #rating
+    echo "$(hgrep 'a +class="item video_carousel_item .*" | "%i\n"' <<< "$t" | sed ':x; $!{N;s/\n/,/;bx}; s/,,*/,/g; s/   *//g')" #tags
     echo "$(hgrep 'script #tm_pc_player_setup' <<< "$t" | sed 's/.*actionTags: *"\([^"]*\)",.*/\1/')" #actions
-    echo "$(hgrep 'div +class="pornstar-name pornstarPopupWrapper"; a +href @p"%(href)a\n" -class @M"<"' <<< "$t" | sed ':x; s/\/.*\///; $!{N; s/\n/,/; bx}')" #stars
+    echo "$(hgrep 'div +class="pornstar-name pornstarPopupWrapper"; a +href -class @M"<" | "%(href)a\n"' <<< "$t" | sed ':x; s/\/.*\///; $!{N; s/\n/,/; bx}')" #stars
     } | jq -RnMc '
         input as $link |
         input as $title |
@@ -55,7 +55,7 @@ get_page() {
         .["tags"]=$tags |
         .["actions"]=$actions |
         .["stars"]=$stars' > "$name"
-    hgrep 'div +id="video_related_videos_one"; a .video_link +href @p"https://www.redtube.com%(href)a\n"' <<< "$t" | grep -v '/premium/'
+    hgrep 'div +id="video_related_videos_one"; a .video_link +href | "https://www.redtube.com%(href)a\n"' <<< "$t" | grep -v '/premium/'
 }
 
 if [ "$#" -lt '2' ]
