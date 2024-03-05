@@ -1,6 +1,6 @@
-# redtube
+# redtube-scraper
 
-A bash script for archiving redtube video metadata in json.
+A bash script for scraping redtube video metadata in json.
 
 ## Requirements
 
@@ -9,7 +9,7 @@ A bash script for archiving redtube video metadata in json.
 
 ## Installation
 
-    install -m 755 redtube /usr/bin
+    install -m 755 redtube-scraper /usr/bin
 
 ## Json format
 
@@ -19,4 +19,4 @@ Here's example of a [video](video-example.json).
 
 It works as recursive spider getting urls from every page starting from URL.
 
-    redtube DIR URL
+    redtube-scraper DIR URL
