@@ -18,44 +18,37 @@ get_page() {
     local -r name="$(sha256sum <<< "$1"  | cut -d' ' -f1)"
     [ -e "$name" ] && return
     local -r t="$(ucurl "$1" | tr -d '\n\r\t')"
-    local -r jn="$(hgrep 'script +type="application/ld+json" | "%i\n"' <<< "$t")"
+    local -r jn="$(reliq 'script type="application/ld+json" | "%i\n"' <<< "$t")"
     {
-    echo "$1" #link
-    echo "$(hgrep 'h1 .video_page_title | "%i\n"' <<< "$t" | sed 's/^ *//;s/ *$//')" #title
-    echo "$(hgrep 'div +class="video-infobox-uploader-info"; a | "%i\n"' <<< "$t")" #channel
     echo "$(jq -r .uploadDate <<< "$jn")" #date
     echo "$(jq -r .duration <<< "$jn")" #duration
     echo "$(jq -r .thumbnailUrl <<< "$jn")" #thumbnail
-    echo "$(hgrep 'span +class="video_view_count" | "%i\n"' <<< "$t" | sed 's/ .*//')" #views
-    echo "$(hgrep 'div +class="rating_percent js_rating_percent" +data-percent | "%(data-percent)a\n"' <<< "$t")" #rating
-    echo "$(hgrep 'a +class="item video_carousel_item .*" | "%i\n"' <<< "$t" | sed ':x; $!{N;s/\n/,/;bx}; s/,,*/,/g; s/   *//g')" #tags
-    echo "$(hgrep 'script #tm_pc_player_setup' <<< "$t" | sed 's/.*actionTags: *"\([^"]*\)",.*/\1/')" #actions
-    echo "$(hgrep 'div +class="pornstar-name pornstarPopupWrapper"; a +href -class @M"<" | "%(href)a\n"' <<< "$t" | sed ':x; s/\/.*\///; $!{N; s/\n/,/; bx}')" #stars
+    echo "$1" #link
+    reliq '
+        h1 .video_page_title | "%i" / sed "s/<[^>]*>([^<]*)<[^>]*>/\1/" "E" echo "" "\n",
+        div .video-infobox-uploader-info; a | "%i" / echo "" "\n",
+        span +class="video_view_count" | "%i" / sed "s/ .*//" echo "" "\n",
+        div +class="rating_percent js_rating_percent" +data-percent | "%(data-percent)v" / echo "" "\n",
+        a .item .video_carousel_item | "%i\t" / echo "" "\n",
+        script #tm_pc_player_setup | "%i" / sed "s/.*actionTags: *\"([^\"]*)\",.*/\1/" "E" echo "" "\n",
+        div +class="pornstar-name pornstarPopupWrapper"; a +href -class c@[0] | "%(href)v\t" / echo "" "\n"
+    ' <<< "$t"
     } | jq -RnMc '
-        input as $link |
-        input as $title |
-        input as $channel |
-        input as $date |
-        input as $duration |
-        input as $thumbnail |
-        input as $views |
-        input as $rating |
-        (input | split(",")) as $tags |
-        (input | split(",") | map(split(":") | {("name"):.[0],("moment"):.[1]})) as $actions |
-        (input | split(",")) as $stars |
-
-        .["link"]=$link |
-        .["title"]=$title |
-        .["channel"]=$channel |
-        .["date"]=$date |
-        .["duration"]=$duration |
-        .["thumbnail"]=$thumbnail |
-        .["views"]=$views |
-        .["rating"]=$rating |
-        .["tags"]=$tags |
-        .["actions"]=$actions |
-        .["stars"]=$stars' > "$name"
-    hgrep 'div +id="video_related_videos_one"; a .video_link +href | "https://www.redtube.com%(href)a\n"' <<< "$t" | grep -v '/premium/'
+        .["date"]=input |
+        .["duration"]=input |
+        .["thumbnail"]=input |
+        .["link"]=input |
+        .["title"]=input |
+        .["channel"]=input |
+        .["views"]=input |
+        .["rating"]=input |
+        .["tags"]=(input | split("\t"))[:-1] |
+        .["actions"]=(input | split(",") | map(split(":") | {
+            ("name"):.[0],
+            ("moment"):.[1]
+        })) |
+        .["stars"]=(input | split("\t"))[:-1]' > "$name"
+    reliq 'div #video_related_videos_one; a .video_link href | "https://www.redtube.com%(href)v\n"' <<< "$t" | grep -v '/premium/'
 }
 
 if [ "$#" -lt '2' ]
@@ -75,6 +68,8 @@ do
     get_page "$1"
     shift
 done > "$t1"
+
+exit
 
 while :
 do
