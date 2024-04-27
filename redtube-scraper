@@ -69,8 +69,6 @@ do
     shift
 done > "$t1"
 
-exit
-
 while :
 do
     [ -s "$t1" ] || exit
