@@ -25,13 +25,13 @@ get_page() {
     echo "$(jq -r .thumbnailUrl <<< "$jn")" #thumbnail
     echo "$1" #link
     reliq '
-        h1 .video_page_title | "%i" / sed "s/<[^>]*>([^<]*)<[^>]*>/\1/" "E" echo "" "\n",
-        div .video-infobox-uploader-info; a | "%i" / echo "" "\n",
-        span +class="video_view_count" | "%i" / sed "s/ .*//" echo "" "\n",
-        div +class="rating_percent js_rating_percent" +data-percent | "%(data-percent)v" / echo "" "\n",
-        a .item .video_carousel_item | "%i\t" / echo "" "\n",
-        script #tm_pc_player_setup | "%i" / sed "s/.*actionTags: *\"([^\"]*)\",.*/\1/" "E" echo "" "\n",
-        div +class="pornstar-name pornstarPopupWrapper"; a +href -class c@[0] | "%(href)v\t" / echo "" "\n"
+        . h1 .video_page_title | "%i\n" / sed "s/<[^>]*>([^<]*)<[^>]*>/\1/" "E",
+        . div .video-infobox-uploader-info; a | "%i\n",
+        . span +class="video_view_count" | "%i\n" / sed "s/ .*//",
+        . div +class="rating_percent js_rating_percent" +data-percent | "%(data-percent)v\n",
+        . a .item .video_carousel_item | "%i\t" / echo "" "\n",
+        . script #tm_pc_player_setup | "%i\n" / sed "s/.*actionTags: *\"([^\"]*)\",.*/\1/" "E",
+        . div +class="pornstar-name pornstarPopupWrapper"; a +href -class c@[0] | "%(href)v\t" / echo "" "\n"
     ' <<< "$t"
     } | jq -RnMc '
         .["date"]=input |
