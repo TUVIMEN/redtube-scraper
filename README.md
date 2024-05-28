@@ -1,6 +1,6 @@
 # redtube-scraper
 
-A bash script for scraping redtube video metadata in json.
+A bash script for scraping redtube videos metadata in json.
 
 ## Requirements
 
@@ -17,6 +17,6 @@ Here's example of a [video](video-example.json).
 
 ## Usage
 
-It works as recursive spider getting urls from every page starting from URL.
+It works as recursive spider getting urls from every page starting from URL, and saving results in files named by their id.
 
     redtube-scraper DIR URL

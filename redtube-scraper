@@ -15,40 +15,31 @@ usage() {
 }
 
 get_page() {
-    local -r name="$(sha256sum <<< "$1"  | cut -d' ' -f1)"
+    local -r name="${1#https://www.redtube.com/}"
     [ -e "$name" ] && return
     local -r t="$(ucurl "$1" | tr -d '\n\r\t')"
-    local -r jn="$(reliq 'script type="application/ld+json" | "%i\n"' <<< "$t")"
     {
-    echo "$(jq -r .uploadDate <<< "$jn")" #date
-    echo "$(jq -r .duration <<< "$jn")" #duration
-    echo "$(jq -r .thumbnailUrl <<< "$jn")" #thumbnail
-    echo "$1" #link
+    reliq 'script type="application/ld+json" | "%i\n"' <<< "$t" | jq -rcM --arg link "$1" ' {
+        "link":$link,
+        "date":.uploadDate,
+        "duration":(.duration? | gsub("[^0-9]";"")),
+        "thumbnail":.thumbnailUrl
+    }'
+
     reliq '
-        . h1 .video_page_title | "%i\n" / sed "s/<[^>]*>([^<]*)<[^>]*>/\1/" "E",
-        . div .video-infobox-uploader-info; a | "%i\n",
-        . span +class="video_view_count" | "%i\n" / sed "s/ .*//",
-        . div +class="rating_percent js_rating_percent" +data-percent | "%(data-percent)v\n",
-        . a .item .video_carousel_item | "%i\t" / echo "" "\n",
-        . script #tm_pc_player_setup | "%i\n" / sed "s/.*actionTags: *\"([^\"]*)\",.*/\1/" "E",
-        . div +class="pornstar-name pornstarPopupWrapper"; a +href -class c@[0] | "%(href)v\t" / echo "" "\n"
+        .title h1 .video_page_title | "%i" / sed "s/<[^>]*>([^<]*)<[^>]*>/\1/" "E",
+        .channel div .video-infobox-uploader-info; a | "%i",
+        .views span .video_view_count | "%i" / sed "s/ .*//",
+        .rating div class="rating_percent js_rating_percent" data-percent | "%(data-percent)v",
+        .tags.a a .item .video_carousel_item | "%i\n",
+        .actions.a(",") script #tm_pc_player_setup | "%i" / sed "s/.*actionTags: *\"([^\"]*)\",.*/\1/" "E",
+        .stars.a div class="pornstar-name pornstarPopupWrapper"; a href -class c@[0] | "https://redtube.com%(href)v\n"
     ' <<< "$t"
-    } | jq -RnMc '
-        .["date"]=input |
-        .["duration"]=input |
-        .["thumbnail"]=input |
-        .["link"]=input |
-        .["title"]=input |
-        .["channel"]=input |
-        .["views"]=input |
-        .["rating"]=input |
-        .["tags"]=(input | split("\t"))[:-1] |
-        .["actions"]=(input | split(",") | map(split(":") | {
-            ("name"):.[0],
-            ("moment"):.[1]
-        })) |
-        .["stars"]=(input | split("\t"))[:-1]' > "$name"
-    reliq 'div #video_related_videos_one; a .video_link href | "https://www.redtube.com%(href)v\n"' <<< "$t" | grep -v '/premium/'
+    } | jq -srcM '.[0] + (.[1] | .["actions"]=(.["actions"] | map(split(":") | {
+        ("name"):.[0],
+        ("moment"):.[1]
+    })))' > "$name"
+    reliq 'div #video_related_videos_one; a .video_link href | "https://www.redtube.com%(href)v\n" / sed "\#/premium/#d"' <<< "$t"
 }
 
 if [ "$#" -lt '2' ]
