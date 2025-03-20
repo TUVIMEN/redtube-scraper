@@ -52,7 +52,7 @@ cd "$1" || exit 1
 shift
 
 t1="$(mktemp)"
-trap 'rm "$t1"' EXIT
+trap 'rm "$t1"' HUP INT QUIT TERM PWR EXIT RETURN
 while [ "$#" -gt 0 ]
 do
     echo "$1" >&2
